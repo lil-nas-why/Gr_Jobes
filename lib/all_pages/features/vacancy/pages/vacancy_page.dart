@@ -1,7 +1,11 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:gr_jobs/all_pages/features/vacancy/pages/vacancies_average_maps.dart';
+import 'package:gr_jobs/all_pages/features/vacancy/widgets/articles_page.dart';
 import 'package:gr_jobs/all_pages/features/vacancy/widgets/recommendation_card.dart';
 import 'package:gr_jobs/all_pages/features/vacancy/widgets/vacancy_ya_map_page.dart';
+import 'package:gr_jobs/all_pages/features/vacancy_filter/widgets/work_format_filter_modal.dart';
 import 'package:gr_jobs/all_pages/models_data/recommendation_models_data.dart';
 import 'package:gr_jobs/all_pages/service/auth_service.dart';
 import 'package:provider/provider.dart';
@@ -13,6 +17,7 @@ import 'package:gr_jobs/all_pages/features/vacancy/widgets/vacancy_card.dart';
 
 import 'package:gr_jobs/all_pages/features/vacancy_filter/pages/vacancy_filter_page.dart';
 import 'package:gr_jobs/all_pages/features/vacancy/widgets/search_vacancies_modal.dart';
+import 'package:yandex_mapkit/yandex_mapkit.dart';
 
 class VacancyPage extends StatefulWidget {
   const VacancyPage({super.key});
@@ -27,37 +32,37 @@ class _VacancyPageState extends State<VacancyPage> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final vacancyProvider = Provider.of<VacancyProvider>(context, listen: false);
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-
-      // Метод для загрузки вакансий
-      void loadVacanciesWithUser() {
-        if (authProvider.isAuthenticated && authProvider.appUser != null) {
-          print('Начинаем загрузку вакансий для пользователя: ${authProvider.appUser!.id}');
-          vacancyProvider.loadVacancies(currentUserId: authProvider.appUser!.id);
-        } else {
-          print('Пользователь не авторизован или appUser == null');
-          vacancyProvider.loadVacancies();
-        }
-      }
-
-      // Подписываемся на изменения AuthProvider
-      late final void Function() listener;
-      listener = () {
-        if (!mounted) return;
-        loadVacanciesWithUser();
-      };
-
-      // Вызываем один раз при старте
-      loadVacanciesWithUser();
-
-      // Добавляем подписку
-      authProvider.addListener(listener);
-
-      // Сохраняем для dispose
-      _authListener = listener;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeData();
     });
+  }
+
+  void _initializeData() {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final vacancyProvider = Provider.of<VacancyProvider>(context, listen: false);
+
+    // Загружаем данные сразу
+    _loadVacancies(authProvider, vacancyProvider);
+
+    // Добавляем слушатель, но с защитой от дублирования
+    _authListener = () {
+      if (!mounted) return;
+      _loadVacancies(authProvider, vacancyProvider);
+    };
+
+    authProvider.addListener(_authListener!);
+  }
+
+  void _loadVacancies(AuthProvider authProvider, VacancyProvider vacancyProvider) {
+    if (vacancyProvider.isLoading) return; // Не загружаем, если уже идет загрузка
+
+    if (authProvider.isAuthenticated && authProvider.appUser != null) {
+      print('Загрузка вакансий для пользователя: ${authProvider.appUser!.id}');
+      vacancyProvider.loadVacancies(currentUserId: authProvider.appUser!.id);
+    } else {
+      print('Пользователь не авторизован');
+      vacancyProvider.loadVacancies();
+    }
   }
 
   @override
@@ -74,6 +79,7 @@ class _VacancyPageState extends State<VacancyPage> {
 
   @override
   Widget build(BuildContext context) {
+
     return Stack(
       children: [
         Scaffold(
@@ -95,8 +101,9 @@ class _VacancyPageState extends State<VacancyPage> {
                   const Text('Рекомендуем попробовать',
                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 16),
+                  // В вашем VacancyPage
                   SizedBox(
-                    height: 150, // Увеличил высоту для лучшего отображения
+                    height: 150,
                     child: ListView.builder(
                       scrollDirection: Axis.horizontal,
                       itemCount: recommendations.length,
@@ -108,8 +115,54 @@ class _VacancyPageState extends State<VacancyPage> {
                             recommendation: recommendation,
                             onTap: () {
 
-                              print('Нажата рекомендация: ${recommendation.title}');
+                              if (recommendation.title == 'Подработка и временная работа') {
+                                showModalBottomSheet(
+                                  context: context,
+                                  isScrollControlled: true,
+                                  backgroundColor: Colors.transparent,
+                                  builder: (context) => const PartTimeWorkModal(),
+                                );
+                              } else if (recommendation.title == 'Полезные статьи и советы') {
 
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => ArticlesPage(),
+                                  ),
+                                );
+                              } else if (recommendation.title == 'Вакансии рядом с вами') {
+
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) {
+
+                                      final vacancyProvider = Provider.of<VacancyProvider>(context, listen: false);
+
+                                      final vacanciesWithLocation = vacancyProvider.vacancies
+                                          .where((v) => v.latitude != null && v.longitude != null)
+                                          .toList();
+
+                                      Point initialPoint;
+                                      if (vacanciesWithLocation.isNotEmpty) {
+                                        // Используем первую вакансию как центр
+                                        initialPoint = Point(
+                                          latitude: vacanciesWithLocation.first.latitude!,
+                                          longitude: vacanciesWithLocation.first.longitude!,
+                                        );
+                                      } else {
+                                        // Если нет вакансий с координатами, используем Москву как центр по умолчанию
+                                        initialPoint = Point(latitude: 55.751244, longitude: 37.618423);
+                                      }
+
+                                      return VacanciesMapScreen(
+                                        vacancies: vacanciesWithLocation,
+                                        initialPoint: initialPoint,
+                                      );
+                                    },
+                                  ),
+                                );
+                              }
                             },
                           ),
                         );
@@ -123,7 +176,7 @@ class _VacancyPageState extends State<VacancyPage> {
                   const Text('Вакансии для вас',
                       style: TextStyle(
                           fontSize: 18, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 16),
+
 
                   // Получаем список вакансий через Provider
                   Consumer<VacancyProvider>(
@@ -131,59 +184,60 @@ class _VacancyPageState extends State<VacancyPage> {
                       if (vacancyProvider.isLoading) {
                         return const Center(child: CircularProgressIndicator());
                       }
+
                       final vacancies = vacancyProvider.vacancies;
                       if (vacancies.isEmpty) {
                         return const Center(child: Text('Нет вакансий'));
                       }
-                      return Column(
-                        children: vacancies.map((vacancy) {
-                          return StatefulBuilder(
-                            builder: (context, setModalState) {
-                              return VacancyCard(
-                                vacancy: vacancy,
-                                onFavoriteToggled: (isFavorite) async {
-                                  final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
-                                  if (authProvider.isAuthenticated && authProvider.appUser != null) {
-                                    try {
-                                      await vacancyProvider.toggleFavoriteVacancy(
-                                        authProvider.appUser!.id,
-                                        vacancy.id,
-                                        !isFavorite,
-                                      );
-                                    } catch (e) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(content: Text('Ошибка: ${e.toString()}')),
-                                      );
-                                    }
-                                  } else {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Войдите, чтобы добавлять в избранное')),
-                                    );
-                                  }
-                                },
-                                onTap: () {},
-                                onMapTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => MapScreen(
-                                        vacancyTitle: vacancy.title,
-                                        address:
-                                        '${vacancy.cityName}, ${vacancy.address}',
-                                        latitude: vacancy.latitude,
-                                        longitude: vacancy.longitude,
-                                      ),
-                                    ),
+                      return ListView.builder(
+                        physics: const NeverScrollableScrollPhysics(),
+                        shrinkWrap: true,
+                        itemCount: vacancies.length,
+                        itemBuilder: (context, index) {
+                          final vacancy = vacancies[index];
+                          return VacancyCard(
+                            key: ValueKey(vacancy.id), // Важно для правильной работы списка
+                            vacancy: vacancy,
+                            onFavoriteToggled: (isFavorite) async {
+                              final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                              if (authProvider.isAuthenticated && authProvider.appUser != null) {
+                                try {
+                                  await vacancyProvider.toggleFavoriteVacancy(
+                                    authProvider.appUser!.id,
+                                    vacancy.id,
+                                    !isFavorite,
                                   );
-                                },
+                                } catch (e) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Ошибка: ${e.toString()}')),
+                                  );
+                                }
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Войдите, чтобы добавлять в избранное')),
+                                );
+                              }
+                            },
+                            onTap: () {},
+                            onMapTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => MapScreen(
+                                    vacancyTitle: vacancy.title,
+                                    address: '${vacancy.cityName}, ${vacancy.address}',
+                                    latitude: vacancy.latitude,
+                                    longitude: vacancy.longitude,
+                                  ),
+                                ),
                               );
                             },
                           );
-                        }).toList(),
+                        },
                       );
                     },
-                  ),
+                  )
                 ],
               ),
             ),

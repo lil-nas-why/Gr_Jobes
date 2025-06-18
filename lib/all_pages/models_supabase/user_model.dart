@@ -9,7 +9,7 @@ import 'package:gr_jobs/all_pages/models_supabase/job_search_status_model.dart';
 
 class User {
   final String id;
-  final String supabase_user_id;
+  final String? supabase_user_id;
   final String firstName;
   final String lastName;
   final String? middleName;

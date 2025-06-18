@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:gr_jobs/all_pages/models_data/profile_page_model.dart';
 import 'package:gr_jobs/all_pages/widgets/auth_flow/auth_modal.dart';
@@ -6,8 +7,24 @@ import 'package:provider/provider.dart';
 import 'package:gr_jobs/all_pages/service/auth_service.dart';
 import 'package:gr_jobs/all_pages/features/additional_options/pages/guest_reviews_page.dart';
 
-class AdditionalOptionsPage extends StatelessWidget {
+class AdditionalOptionsPage extends StatefulWidget {
   const AdditionalOptionsPage({super.key});
+
+  @override
+  State<AdditionalOptionsPage> createState() => _AdditionalOptionsPageState();
+}
+
+class _AdditionalOptionsPageState extends State<AdditionalOptionsPage> {
+
+  @override
+  void dispose() {
+
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      systemNavigationBarColor: Color.fromRGBO(0, 100, 0, 0.7),
+      systemNavigationBarDividerColor: Colors.transparent,
+    ));
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

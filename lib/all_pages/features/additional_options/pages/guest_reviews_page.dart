@@ -4,7 +4,6 @@ import 'package:gr_jobs/all_pages/service/provider.dart';
 import 'package:gr_jobs/all_pages/features/profile_auth/pages/profile_page.dart';
 import 'package:gr_jobs/main.dart';
 import 'package:provider/provider.dart';
-import 'package:gr_jobs/all_pages/widgets/navigations/nav_bar.dart';
 import 'package:gr_jobs/all_pages/service/auth_service.dart';
 
 class GuestReviewsPage extends StatelessWidget {

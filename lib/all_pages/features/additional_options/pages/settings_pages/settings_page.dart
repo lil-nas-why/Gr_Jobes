@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gr_jobs/all_pages/models_data/profile_page_model.dart';
 import 'package:gr_jobs/all_pages/service/auth_service.dart';
-import 'package:gr_jobs/all_pages/widgets/navigations/nav_bar.dart';
 import 'package:gr_jobs/main.dart';
 import 'package:provider/provider.dart';
 

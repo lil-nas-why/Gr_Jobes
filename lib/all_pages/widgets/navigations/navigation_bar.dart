@@ -84,10 +84,10 @@ class _NavigationState extends State<Navigation> {
               ),
               // Вторая вкладка - Избранное
               widget.auth
-                  ? FavoritesPage(onSearchVacancies: () {})
+                  ? FavoritesPage()
                   : const GuestFavouritesVacPage(),
               // Третья вкладка - Отклики
-              widget.auth ? const ResponsesPage() : const GuestResponsesPage(),
+              widget.auth ? const ApplicationsPage() : const GuestResponsesPage(),
               // Четвертая вкладка - Профиль
               widget.auth ? const ProfilePage() : const GuestProfilePage(),
             ],

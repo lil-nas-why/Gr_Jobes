@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:gr_jobs/all_pages/features/profile_auth/create_resume/pages/create_resume_steps_page.dart';
+import 'package:gr_jobs/all_pages/features/profile_auth/edit_user_info/pages/user_detail_info.dart';
 import 'package:provider/provider.dart';
 
 import 'package:gr_jobs/all_pages/service/provider.dart';
@@ -86,6 +89,12 @@ class _ProfilePageState extends State<ProfilePage> {
           IconButton(
             icon: const Icon(Icons.more_horiz),
             onPressed: () {
+
+              SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+                systemNavigationBarColor: Colors.white,
+                systemNavigationBarDividerColor: Colors.transparent,
+              ));
+
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => AdditionalOptionsPage()),
@@ -113,7 +122,22 @@ class _ProfilePageState extends State<ProfilePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ProfileCard(user: user),
+
+              ProfileCard(
+                user: user,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => UserDetailPage(user: user!),
+                    ),
+                  ).then((_) {
+                    // Всегда обновляем при возврате
+                    _loadUserData();
+                  });
+                },
+              ),
+
               const SizedBox(height: 10),
               StatusCard(
                 user: user,
@@ -126,7 +150,10 @@ class _ProfilePageState extends State<ProfilePage> {
                 Column(
                   children: [
                     for (var resume in user.resumes) ...[
-                      ResumeCard(resume: resume),
+                      ResumeCard(
+                        resume: resume,
+                        onResumeDeleted: _loadUserData,
+                      ),
                       if (resume != user.resumes.last)
                         const SizedBox(height: 8),
                     ],
@@ -135,12 +162,17 @@ class _ProfilePageState extends State<ProfilePage> {
               const SizedBox(height: 16),
               CreateResumeButton(
                 onTap: () {
-                  showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    backgroundColor: Colors.white,
-                    builder: (context) => ResumeCreationModal(),
-                  ).then((_) => _loadUserData()); // Обновляем данные после закрытия модалки
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ResumeCreationPage(),
+                      fullscreenDialog: true, // Это сделает анимацию как у модального окна
+                    ),
+                  ).then((result) {
+                    if (result == true) {
+                      _loadUserData(); // Обновляем данные только если резюме было создано
+                    }
+                  });
                 },
               ),
             ],

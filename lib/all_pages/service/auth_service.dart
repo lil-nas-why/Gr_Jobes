@@ -97,7 +97,6 @@ class AuthProvider with ChangeNotifier {
           throw Exception('Не удалось создать пользователя');
         }
       } else {
-        // Сохраняем существующего пользователя
         _appUser = app_models.User.fromJson(response as Map<String, dynamic>);
       }
 

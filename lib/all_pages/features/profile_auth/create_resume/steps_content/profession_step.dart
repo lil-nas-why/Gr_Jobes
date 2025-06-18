@@ -51,6 +51,7 @@ class _ProfessionStepState extends State<ProfessionStep> {
     final Profession? result = await showModalBottomSheet<Profession>(
       context: context,
       isScrollControlled: true,
+      backgroundColor: Colors.white,
       builder: (context) => ProfessionSearchModal(
         onProfessionSelected: (profession) {
           Navigator.of(context).pop(profession);
@@ -73,6 +74,7 @@ class _ProfessionStepState extends State<ProfessionStep> {
     final Profession? result = await showModalBottomSheet<Profession>(
       context: context,
       isScrollControlled: true,
+      backgroundColor: Colors.white,
       builder: (context) => Container(
         padding: const EdgeInsets.all(16),
         height: MediaQuery.of(context).size.height * 0.7,
@@ -81,7 +83,7 @@ class _ProfessionStepState extends State<ProfessionStep> {
             Text(
               'Выберите специализацию',
               style: TextStyle(
-                fontSize: 20,
+                fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
             ),

@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:gr_jobs/all_pages/features/vacancy/pages/vacancy_detail_page.dart';
+import 'package:gr_jobs/all_pages/features/vacancy/widgets/application_modal.dart';
 import 'package:gr_jobs/all_pages/models_supabase/vacancy_model.dart';
+import 'package:gr_jobs/all_pages/service/auth_service.dart';
+import 'package:gr_jobs/all_pages/service/user_service.dart';
+import 'package:provider/provider.dart';
 
 class VacancyCard extends StatelessWidget {
   final Vacancy vacancy;
@@ -17,6 +22,10 @@ class VacancyCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
+    final user = Provider.of<UserProvider>(context).user;
+    final hasApplied = user?.applications.any((a) => a.vacancyId == vacancy.id) ?? false;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -30,7 +39,14 @@ class VacancyCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           highlightColor: Colors.transparent,
           splashColor: Colors.transparent,
-          onTap: onTap,
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => VacancyDetailsPage(vacancy: vacancy),
+              ),
+            );
+          },
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -175,10 +191,29 @@ class VacancyCard extends StatelessWidget {
                         child: const Text('Контакты'),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 8),// В классе VacancyCard обновим кнопку отклика:
+                    // В классе VacancyCard обновим кнопку отклика:
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: () {},
+                        onPressed: hasApplied
+    ? null: () {
+                          final userProvider = Provider.of<AuthProvider>(context, listen: false);
+                          if (!userProvider.isAuthenticated) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Войдите, чтобы откликнуться на вакансию'),
+                              ),
+                            );
+                            return;
+                          }
+
+                          showModalBottomSheet(
+                            context: context,
+                            isScrollControlled: true,
+                            backgroundColor: Colors.transparent,
+                            builder: (context) => ApplicationModal(vacancy: vacancy),
+                          );
+                        },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.green,
                           foregroundColor: Colors.white,

@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:gr_jobs/all_pages/models_data/resume_model_data.dart';
@@ -25,6 +26,29 @@ class _ResumeCreationPageState extends State<ResumeCreationPage> {
   final ResumeData resumeData = ResumeData();
   Profession? _selectedProfession;
   bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+        systemNavigationBarColor: Colors.white,
+        systemNavigationBarDividerColor: Colors.transparent,
+      ));
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+        systemNavigationBarColor: Color.fromRGBO(0, 100, 0, 0.7),
+        systemNavigationBarDividerColor: Colors.transparent,
+      ));
+    });
+    super.dispose();
+  }
 
   Future<void> _saveResume() async {
     if (_selectedProfession == null || resumeData.about.isEmpty) {
@@ -74,9 +98,9 @@ class _ResumeCreationPageState extends State<ResumeCreationPage> {
       });
 
       if (mounted) {
-        Navigator.of(context).pop();
+        Navigator.of(context).pop(true); // Возвращаем true как индикатор успешного сохранения
         final userProvider = AppProvider.user(context);
-        await userProvider.updateUser({}); // Пустой Map, если не нужно обновлять конкретные поля
+        await userProvider.fetchUser(currentUser.id); // Явно обновляем данные пользователя
       }
 
     } catch (e) {
@@ -97,9 +121,9 @@ class _ResumeCreationPageState extends State<ResumeCreationPage> {
   }
 
   void _nextStep() {
-    if (currentStep < 4 && mounted) {
+    if (currentStep < 3 && mounted) {
       setState(() => currentStep++);
-    } else if (currentStep == 4) {
+    } else if (currentStep == 3) {
       _saveResume();
     }
   }
@@ -296,8 +320,6 @@ class _ResumeCreationPageState extends State<ResumeCreationPage> {
     );
   }
 
-
-  @override
   @override
   Widget build(BuildContext context) {
     return Scaffold(

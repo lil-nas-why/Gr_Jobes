@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:gr_jobs/all_pages/features/profile_auth/edit_user_info/pages/user_detail_info.dart';
 import 'package:gr_jobs/all_pages/models_supabase/user_model.dart';
 import 'package:gr_jobs/all_pages/features/profile_auth/placeholders/loading_placeholder.dart';
 
 class ProfileCard extends StatelessWidget {
   final User? user;
+  final VoidCallback? onTap;
 
   const ProfileCard({
     super.key,
     required this.user,
+    this.onTap,
   });
 
   @override
@@ -89,7 +92,16 @@ class ProfileCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
             highlightColor: Colors.transparent,
             splashColor: Colors.transparent,
-            onTap: () {},
+            onTap: () {
+              if (user != null) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => UserDetailPage(user: user!),
+                  ),
+                );
+              }
+            },
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(

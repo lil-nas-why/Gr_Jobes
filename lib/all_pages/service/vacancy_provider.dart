@@ -1,4 +1,8 @@
+import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:gr_jobs/all_pages/models_supabase/application_model.dart';
 import 'package:gr_jobs/all_pages/models_supabase/city_model.dart';
 import 'package:gr_jobs/all_pages/models_supabase/experience_option_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
@@ -10,7 +14,9 @@ import 'package:gr_jobs/all_pages/service/vacancy_service.dart';
 
 class VacancyProvider with ChangeNotifier {
   List<Vacancy> _vacancies = [];
+  List<Vacancy> _favoriteVacancies = [];
   bool _isLoading = false;
+  String? _error;
 
   // Поля для фильтров
   List<ExperienceOption> _experienceOptions = [];
@@ -19,7 +25,10 @@ class VacancyProvider with ChangeNotifier {
   List<City> _cities = [];
 
   List<Vacancy> get vacancies => _vacancies;
+  List<Vacancy> get favoriteVacancies => _favoriteVacancies;
+
   bool get isLoading => _isLoading;
+  String? get error => _error;
 
   // Геттеры для данных фильтров
   List<ExperienceOption> get experienceOptions => _experienceOptions;
@@ -27,6 +36,26 @@ class VacancyProvider with ChangeNotifier {
   List<WorkSchedule> get workSchedules => _workSchedules;
   List<City> get cities => _cities;
 
+  //Для откликов
+  List<Application> _userApplications = [];
+  List<Application> get userApplications => _userApplications;
+
+  Future<void> loadCities() async {
+    if (_cities.isNotEmpty) return;
+
+    try {
+      final response = await supabase.Supabase.instance.client
+          .from('cities')
+          .select('*, regions(*)')
+          .order('name', ascending: true);
+
+      _cities = (response as List)
+          .map((json) => City.fromJson(json))
+          .toList();
+    } catch (e) {
+      print('Error loading cities: $e');
+    }
+  }
 
   Future<void> loadVacancies({String? currentUserId}) async {
     _isLoading = true;
@@ -45,8 +74,12 @@ class VacancyProvider with ChangeNotifier {
           print('Vacancy ${v.id} isFavorite: $isFavorite');
           return v.copyWith(isFavorite: isFavorite);
         }).toList();
+
+        // Обновляем список избранных вакансий
+        _favoriteVacancies = _vacancies.where((v) => v.isFavorite).toList();
       } else {
         _vacancies = vacancies.map((v) => v.copyWith(isFavorite: false)).toList();
+        _favoriteVacancies = [];
       }
 
       print('[DEBUG] Вакансии загружены: ${_vacancies.length} шт.');
@@ -102,8 +135,53 @@ class VacancyProvider with ChangeNotifier {
     }
   }
 
+  Future<void> fetchFavoriteVacancies(String userId) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final response = await supabase.Supabase.instance.client
+          .from('favorite_vacancies')
+          .select('vacancy_id(*)')
+          .eq('seeker_id', userId);
+
+      if (response != null && response.isNotEmpty) {
+        _favoriteVacancies = (response as List)
+            .map((json) => Vacancy.fromJson(json['vacancy_id']))
+            .toList();
+      } else {
+        _favoriteVacancies = [];
+      }
+    } catch (e) {
+      _error = 'Ошибка при получении избранных вакансий: $e';
+      print(_error);
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> unfavoriteVacancy(String userId, String vacancyId) async {
+    try {
+      await supabase.Supabase.instance.client
+          .from('favorite_vacancies')
+          .delete()
+          .eq('vacancy_id', vacancyId)
+          .eq('seeker_id', userId);
+
+      // Remove from local list
+      _favoriteVacancies.removeWhere((vacancy) => vacancy.id == vacancyId);
+      notifyListeners();
+    } catch (e) {
+      print('Ошибка при удалении из избранного: $e');
+    }
+  }
+
   List<Vacancy> getFilteredVacancies(Map<String, dynamic> filters) {
     List<Vacancy> result = _vacancies;
+
+
 
     if (filters['searchQuery'] != null && filters['searchQuery'].isNotEmpty) {
       final query = filters['searchQuery'].toLowerCase().split(' ');
@@ -130,6 +208,13 @@ class VacancyProvider with ChangeNotifier {
       result = result.where((v) =>
       v.employmentType != null &&
           filters['employmentTypes'].contains(v.employmentType!.typeName)
+      ).toList();
+    }
+
+    if (filters['workFormats'] != null && filters['workFormats'].isNotEmpty) {
+      result = result.where((v) =>
+      v.workFormat != null &&
+          filters['workFormats'].contains(v.workFormat!.formatName)
       ).toList();
     }
 
@@ -194,6 +279,88 @@ class VacancyProvider with ChangeNotifier {
 
     } catch (e) {
       print('Ошибка при обновлении избранного: $e');
+      rethrow;
+    }
+  }
+
+  Future<bool> hasUserApplied(String userId, String vacancyId) async {
+    try {
+      final response = await supabase.Supabase.instance.client
+          .from('applications')
+          .select()
+          .eq('seeker_id', userId)
+          .eq('vacancy_id', vacancyId)
+          .maybeSingle();
+
+      return response != null;
+    } catch (e) {
+      print('Error checking application: $e');
+      return false;
+    }
+  }
+
+  Future<void> fetchUserApplications(String userId, {bool forceRefresh = false}) async {
+    if (_isLoading) return;
+
+    _isLoading = true;
+    _error = null;
+
+    try {
+      final response = await supabase.Supabase.instance.client
+          .from('applications')
+          .select('''
+          *,
+          vacancy:vacancy_id(
+            *,
+            agency:agencies(*),
+            employment_type:employment_types(*),
+            work_format:work_formats(*),
+            location_city:cities(*, regions(*))
+          ),
+          resume:resume_id(*)
+        ''')
+          .eq('seeker_id', userId)
+          .order('created_at', ascending: false);
+
+      final applications = (response as List)
+          .map((json) {
+        try {
+          return Application.fromJson(json);
+        } catch (e, stack) {
+          print('Error parsing application: $e\n$stack');
+          return null;
+        }
+      })
+          .where((app) => app != null && app.vacancy.id.isNotEmpty)
+          .cast<Application>()
+          .toList();
+
+      // Обновляем состояние только если список изменился
+      if (!listEquals(_userApplications, applications)) {
+        _userApplications = applications;
+        notifyListeners();
+      }
+    } catch (e) {
+      _error = 'Ошибка при загрузке откликов: $e';
+      print(_error);
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> withdrawApplication(String userId, String applicationId) async {
+    try {
+      await supabase.Supabase.instance.client
+          .from('applications')
+          .delete()
+          .eq('id', applicationId)
+          .eq('seeker_id', userId);
+
+      _userApplications.removeWhere((app) => app.id == applicationId);
+      notifyListeners();
+    } catch (e) {
+      print('Ошибка при отзыве отклика: $e');
       rethrow;
     }
   }

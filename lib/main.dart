@@ -7,6 +7,7 @@ import 'package:gr_jobs/all_pages/features/additional_options/pages/additional_o
 import 'package:gr_jobs/all_pages/features/additional_options/pages/settings_pages/settings_page.dart';
 import 'package:gr_jobs/supabase_config.dart';
 import 'package:gr_jobs/all_pages/features/vacancy/pages/vacancy_page.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 import 'package:gr_jobs/all_pages/service/auth_service.dart';
@@ -15,6 +16,7 @@ import 'package:yandex_mapkit/yandex_mapkit.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('ru_RU', null);
 
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     systemNavigationBarColor: Color.fromRGBO(0, 100, 0, 0.7), // вместо green.shade900

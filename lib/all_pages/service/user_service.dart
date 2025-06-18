@@ -21,12 +21,13 @@ class UserProvider with ChangeNotifier {
       final userResponse = await supabase.Supabase.instance.client
           .from('users')
           .select('''
-          *, 
-          city: city_id(*),
-          user_job_search_status: user_job_search_status(status_id(*)),
-          resumes(*, profession: profession_id(*))
-        ''')
-          .eq('supabase_user_id', userId) // <-- проверяем по правильному полю
+      *, 
+      city: city_id(*),
+      user_job_search_status: user_job_search_status(status_id(*)),
+      resumes(*, profession: profession_id(*)),
+      applications(*, vacancy: vacancy_id(*), resume: resume_id(*))
+    ''')
+          .eq('supabase_user_id', userId)
           .maybeSingle();
 
       if (userResponse == null) {

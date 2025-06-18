@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:gr_jobs/all_pages/models_supabase/user_model.dart';
 import 'package:gr_jobs/all_pages/models_supabase/job_search_status_model.dart';
 
@@ -22,6 +23,7 @@ class _StatusCardState extends State<StatusCard> {
   @override
   void initState() {
     super.initState();
+
     _currentStatus = widget.user.jobSearchStatus?.statusName;
   }
 
@@ -114,6 +116,11 @@ class _StatusCardState extends State<StatusCard> {
   }
 
   void _showStatusModal() {
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      systemNavigationBarColor: Colors.white,
+      systemNavigationBarDividerColor: Colors.transparent,
+    ));
+
     final allStatuses = [
       JobSearchStatus(id: 1, statusName: 'not_looking', description: '', sortOrder: 1),
       JobSearchStatus(id: 2, statusName: 'actively_looking', description: '', sortOrder: 2),
@@ -211,7 +218,12 @@ class _StatusCardState extends State<StatusCard> {
           ),
         );
       },
-    );
+    ).then((_) {
+      SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+        systemNavigationBarColor: Color.fromRGBO(0, 100, 0, 0.7),
+        systemNavigationBarDividerColor: Colors.transparent,
+      ));
+    });
   }
 
   void _updateStatus(BuildContext context, String newStatus) {

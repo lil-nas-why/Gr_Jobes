@@ -11,8 +11,10 @@ import 'package:gr_jobs/all_pages/widgets/navigations/navigation_provider.dart';
 import 'package:provider/provider.dart';
 import '../widgets/search_vacancies_modal.dart';
 
+
 class FilteredVacanciesPage extends StatefulWidget {
   final String searchTerm;
+
   final List<Vacancy> vacancies;
   final VoidCallback onBack;
 
