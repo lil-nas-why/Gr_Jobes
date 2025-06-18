@@ -1,16 +1,19 @@
-# untitled1
+# Gr Jobs
 
-A new Flutter project.
+Приложение для поиска работы, созданное с помощью Flutter.  
+**Gr Jobs** помогает соискателям находить актуальные вакансии, а работодателям — публиковать их быстро и удобно.
+
+## О приложении
+
+- **Тип проекта:** Flutter-приложение (iOS / Android)
+- **Основная функция:** Поиск и публикация вакансий
+- **Целевая аудитория:** Соискатели, HR-специалисты, небольшие компании и фрилансеры
+- **Ключевые особенности:**
+  - Удобный интерфейс поиска
+  - Фильтрация вакансий по городу, сфере и типу занятости
+  - Интеграция с геолокацией
+  - Авторизация через Supabase
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Этот проект создан на базе Flutter и готов к разработке. Чтобы запустить его локально:
